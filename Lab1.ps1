@@ -40,10 +40,7 @@ for ($i = 0; $i -lt 2; $i++) {
 }
 
 #credentials for all the VMs
-##$cred = Get-Credential -Message "Enter information for the local administrator on all VMs"
-$VMLocalAdminUser = "endoftheday"
-$VMLocalAdminSecurePassword = ConvertTo-SecureString "TestingAzureCTP3!" -AsPlainText -Force
-$cred = New-Object System.Management.Automation.PSCredential ($VMLocalAdminUser, $VMLocalAdminSecurePassword);
+$cred = Get-Credential -Message "Enter information for the local administrator on all VMs"
 
 #create availability set for the load balanced VMs in VNET0
 $as = New-AzureRmAvailabilitySet -ResourceGroupName $resourceGroupName -Name "Lab1AvailabilitySet" -Location $location `
