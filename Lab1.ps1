@@ -1,5 +1,5 @@
 $nsgName="Lab1-nsg"
-$resourceGroupName="rgAzureNetworkingLEAP2"
+$resourceGroupName="rgAzureNetworkingLEAP3"
 $location="westus"
 
 #check if we need to log in
@@ -8,15 +8,21 @@ if ($context.Environment -eq $null) {
     Login-AzureRmAccount
 }
 
+Write-Host "Creating resource group..." -ForegroundColor Yellow
 New-AzureRmResourceGroup -Name $resourceGroupName -Location $location
 
 #add NSG rule to allow port 80 inbound from anywhere
+Write-Host "Creating NSG..." -ForegroundColor Yellow
 New-AzureRmNetworkSecurityGroup -Name $nsgName -ResourceGroupName $resourceGroupName -Location $location
+
+Write-Host "Allowing HTTP..." -ForegroundColor Yellow
 $nsg=Get-AzureRmNetworkSecurityGroup -Name $nsgName -ResourceGroupName $resourceGroupName | `
     Add-AzureRmNetworkSecurityRuleConfig -Name "Allow_Port_80" -Access `
     Allow -Protocol Tcp -Direction Inbound -Priority 110 -SourceAddressPrefix * `
     -SourcePortRange * -DestinationAddressPrefix VirtualNetwork -DestinationPortRange 80 |`
     Set-AzureRmNetworkSecurityGroup 
+
+Write-Host "Allowing RDP..." -ForegroundColor Yellow
 $nsg=Get-AzureRmNetworkSecurityGroup -Name $nsgName -ResourceGroupName $resourceGroupName | `
     Add-AzureRmNetworkSecurityRuleConfig -Name "Allow_RDP" `
     -Access Allow -Protocol Tcp -Direction Inbound -Priority 120 `
@@ -26,15 +32,19 @@ $nsg=Get-AzureRmNetworkSecurityGroup -Name $nsgName -ResourceGroupName $resource
 
 
 #VNETs
+Write-Host "Creating VNETs..." -ForegroundColor Yellow
 for ($i = 0; $i -lt 2; $i++) {
     $NetworkName = "VNET$($i)"
     $SubnetName = "Subnet1"
     $SubnetAddressPrefix = "10.0.0.0/24"
     $VnetAddressPrefix = "10.0.0.0/16"
     $SingleSubnet = New-AzureRmVirtualNetworkSubnetConfig -Name $SubnetName -AddressPrefix $SubnetAddressPrefix
+
+    Write-Host "Creating $($NetworkName)..." -ForegroundColor Yellow
     $Vnet = New-AzureRmVirtualNetwork -Name $NetworkName -ResourceGroupName $ResourceGroupName -Location $Location -AddressPrefix $VnetAddressPrefix -Subnet $SingleSubnet
 
     ##add the NSG
+    Write-Host "Adding NSG to $($NetworkName)..." -ForegroundColor Yellow
     Set-AzureRmVirtualNetworkSubnetConfig -VirtualNetwork $Vnet -Name $SubnetName -AddressPrefix $SubnetAddressPrefix -NetworkSecurityGroup $nsg
     Set-AzureRmVirtualNetwork -VirtualNetwork $Vnet
 }
@@ -46,6 +56,7 @@ $VMLocalAdminSecurePassword = ConvertTo-SecureString "TestingAzureCTP3!" -AsPlai
 $cred = New-Object System.Management.Automation.PSCredential ($VMLocalAdminUser, $VMLocalAdminSecurePassword);
 
 #create availability set for the load balanced VMs in VNET0
+Write-Host "Adding availability set..." -ForegroundColor Yellow
 $as = New-AzureRmAvailabilitySet -ResourceGroupName $resourceGroupName -Name "Lab1AvailabilitySet" -Location $location `
     -Sku aligned `
     -PlatformFaultDomainCount 2 `
@@ -56,6 +67,8 @@ for ($i = 0; $i -lt 2; $i++) {
 
     #names, etc.
     $ComputerName = "Lab1VM$($i)"
+    Write-Host "Creating $($ComputerName)..." -ForegroundColor Yellow
+
     $VMName = "Lab1VM$($i)"
     $VMSize = "Standard_B2ms"
     $NICName = "Lab1VM$($i)-NIC"
@@ -73,11 +86,14 @@ for ($i = 0; $i -lt 2; $i++) {
 
     #create the VM
     New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $location -vm $vmConfig -Verbose
+    Write-Host "Created $($ComputerName)..." -ForegroundColor Green
 }
 
 ##one VM in VNET1
 #names, etc.
 $ComputerName = "Lab1VM2"
+Write-Host "Creating $($ComputerName)..." -ForegroundColor Yellow
+
 $VMName = $ComputerName
 $VMSize = "Standard_B2ms"
 $NICName = "$($ComputerName)-NIC"
@@ -95,37 +111,44 @@ Set-AzureRmVMSourceImage -PublisherName MicrosoftWindowsServer -Offer WindowsSer
 
 #create the VM
 New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $location -VM $vmConfig -Verbose
+Write-Host "Created $($ComputerName)..." -ForegroundColor Green
 
-#install IIS on all three VMs
+#install IIS, configure firewall, create HTML file on all three VMs
+Write-Host "Configuring the VMs for Lab1..." -ForegroundColor Yellow
+for ($i = 0; $i -lt 3; $i++) {
+    $VMName = "Lab1VM$($i)"
+    Write-Host "Configuring $($VMName)..." -ForegroundColor Yellow
+
+   ##call the custom script extension to configure the VMs
+   Set-AzureRmVMCustomScriptExtension -ResourceGroupName $resourceGroupName `
+    -VMName $VMName `
+    -Location $location `
+    -FileUri https://raw.githubusercontent.com/EvanBasalik/AzureNetworkingTrainingClass/master/ConfigureVMScript.ps1 `
+    -Run 'ConfigureVMScript.ps1' `
+    -Name "Lab1Prep"
+}
+
+Write-Host "All VMs for Lab1 created and configured" -ForegroundColor Green
+
+##write out the web server URLs and RDP files
 for ($i = 0; $i -lt 3; $i++) {
     $VMName = "Lab1VM$($i)"
 
-    $commandBase = "powershell "
-    $commandFirewall="New-NetFirewallRule -DisplayName ""Allow Inbound Port 80"" -Direction Inbound -LocalPort 80 -Protocol TCP -Action Allow;"
-    $commandIIS = "Add-WindowsFeature Web-Server;"
-    $commandHTML = '$TargetFile=c:\inetpub\wwwroot\default.html;New-Item $TargetFile -Type File -Force;$htmltext=$env:COMPUTERNAME;$htmltext | Out-File $TargetFile;'
-    $commandAll = ($commandBase + $commandFirewall + $commandIIS + $commandHTML) | ConvertTo-Json
-    $command = "'{""commandToExecute"":$($commandAll)}'"
+    #Get the public IP
+    $vm=Get-AzureRMVM -ResourceGroupName $resourceGroupName -Name $VMName
+    $VNIC = Get-AzureRmNetworkInterface | Where-Object {$_.Id -eq $vm.NetworkProfile.NetworkInterfaces[0].Id}
+    $EIPPublicIP = Get-AzureRmPublicIpAddress | Where-Object {$_.Id -eq $VNIC.IpConfigurations[0].PublicIpAddress.Id}
 
-    ##call the custom script extension with the above commands
-    Set-AzureRmVMExtension -ExtensionName "Lab1Prep" -ResourceGroupName $resourceGroupName -VMName $VMName `
-        -Publisher "Microsoft.Compute" -ExtensionType "CustomScriptExtension" -TypeHandlerVersion 1.4 `
-        -SettingString $command -Location $location
+    Write-Host "URL for $($VMName) is http://$($EIPPublicIP.IpAddress)/default.html" -ForegroundColor Green
+
+    ##generate the RDP files
+    Write-Host "Generating RDP file for $($VMName): " -ForegroundColor Yellow -NoNewline
+    Write-Host "$($VMName).rdp" -ForegroundColor Green
+    $rdpFile = "$($VMName).rdp"
+    "full address:s:$($EIPPublicIP.IpAddress):3389" | Out-File $rdpFile -Force
+    "prompt for credentials:i:1" | Out-File $rdpFile -Append
+    "administrative session:i:1" | Out-File $rdpFile -Append
 }
-
-#create dummy html file
-$TargetFile="c:\inetpub\wwwroot\default.html"
-New-Item $TargetFile -Type File -Force
-$htmltext=$env:COMPUTERNAME
-$htmltext | Out-File $TargetFile
-
-'{"commandToExecute":"powershell $TargetFile="c:\\inetpub\\wwwroot\\default.html";New-Item $TargetFile -Type File -Force;$htmltext=$env:COMPUTERNAME;$htmltext | Out-File $TargetFile;"}'
-    
-
-#allow HTTP traffic through the firewall
-#New-NetFirewallRule -DisplayName "Allow Inbound Port 80" -Direction Inbound -LocalPort 80 -Protocol TCP -Action Allow
-
-
 
 #Add an ILB in VNET1 via the portal -> Choose unassociated
 #Add an ELB in VNET1 via the portal
