@@ -1,9 +1,9 @@
 $nsgName="Lab1-nsg"
-$resourceGroupName="rgAzureNetworkingLEAP3"
+$resourceGroupName="rgAzureNetworkingLEAP"
 $location="westus"
 
 #check if we need to log in
-$context =  Get-AzureRmContext
+$context =  Get-AzureRmContext -ErrorAction SilentlyContinue
 if ($context.Environment -eq $null) {
     Login-AzureRmAccount
 }
