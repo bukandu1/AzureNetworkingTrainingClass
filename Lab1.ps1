@@ -72,7 +72,7 @@ for ($i = 0; $i -lt 2; $i++) {
     $PublicIPAddressName = "Lab1VM$($i)-PIP"
 
     $Vnet = Get-AzureRmVirtualNetwork -Name  "VNET0" -ResourceGroupName $resourceGroupName
-    $PIP = New-AzureRmPublicIpAddress -Name $PublicIPAddressName -ResourceGroupName $resourceGroupName -Location $location -AllocationMethod Dynamic
+    $PIP = New-AzureRmPublicIpAddress -Name $PublicIPAddressName -ResourceGroupName $resourceGroupName -Location $location -AllocationMethod Static
     $NIC = New-AzureRmNetworkInterface -Name $NICName -ResourceGroupName $resourceGroupName -Location $location -SubnetId $Vnet.Subnets[0].Id -PublicIpAddressId $PIP.Id
 
     # Create a virtual machine configuration
