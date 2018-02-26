@@ -3,7 +3,7 @@ $resourceGroupName="rgAzureNetworkingLEAP"
 $location="westus"
 
 #check if we need to log in
-$context =  Get-AzureRmContext -ErrorAction SilentlyContinue
+$context =  Get-AzureRmContext
 if ($context.Environment -eq $null) {
     Login-AzureRmAccount
 }
