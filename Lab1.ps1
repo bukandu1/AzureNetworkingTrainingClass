@@ -72,7 +72,7 @@ for ($i = 0; $i -lt 2; $i++) {
     $PublicIPAddressName = "Lab1VM$($i)-PIP"
 
     $Vnet = Get-AzureRmVirtualNetwork -Name  "VNET0" -ResourceGroupName $resourceGroupName
-    $PIP = New-AzureRmPublicIpAddress -Name $PublicIPAddressName -ResourceGroupName $resourceGroupName -Location $location -AllocationMethod Static
+    $PIP = New-AzureRmPublicIpAddress -Name $PublicIPAddressName -ResourceGroupName $resourceGroupName -Location $location -DomainNameLabel "$($resourceGroupName)PIP$($i)" -AllocationMethod Static
     $NIC = New-AzureRmNetworkInterface -Name $NICName -ResourceGroupName $resourceGroupName -Location $location -SubnetId $Vnet.Subnets[0].Id -PublicIpAddressId $PIP.Id
 
     # Create a virtual machine configuration
@@ -147,7 +147,17 @@ for ($i = 0; $i -lt 3; $i++) {
     "administrative session:i:1" | Out-File $rdpFile -Append
 }
 
-#Add an ILB in VNET1 via the portal -> Choose unassociated
-#Add an ELB in VNET1 via the portal
+#Add an ILB in VNET1 via the portal -> Choose your availability set (Lab1AvailabilitySet by default) and use TCP 80
+#Add an ELB in VNET1 via the portal -> same as above
 
-#Add Demo1 and Demo2 to the backend pool for ILB
+#Create the Traffic Manager profile
+$TMprofile = New-AzureRmTrafficManagerProfile -Name "Lab1TM" -ResourceGroupName $resourceGroupName `
+    -TrafficRoutingMethod Weighted -RelativeDnsName $resourceGroupName -Ttl 5 -MonitorProtocol HTTP -MonitorPort 80 -MonitorPath "/"
+
+#Add the endpoints
+for ($i = 0; $i -lt 3; $i++) {
+    $PIPName = "Lab1VM$($i)-PIP"
+    $ip = Get-AzureRmPublicIpAddress -Name $PIPName -ResourceGroupName $resourceGroupName
+    New-AzureRmTrafficManagerEndpoint -Name "$($PIPName)-TMEndpoint" -ProfileName $TMprofile.Name `
+        -ResourceGroupName $resourceGroupName -Type PublicIpAddress -TargetResourceId $ip.Id -EndpointStatus Enabled 
+}
