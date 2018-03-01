@@ -147,6 +147,8 @@ for ($i = 0; $i -lt 3; $i++) {
     "administrative session:i:1" | Out-File $rdpFile -Append
 }
 
+$OUTPUT= [System.Windows.Forms.MessageBox]::Show("Please go create your ILB and ELB in the portal. Click OK when done." , `
+    "Wait for load balancers" , [System.Windows.Forms.MessageBoxButtons]::OK)
 #Add an ILB in VNET1 via the portal -> Choose your availability set (Lab1AvailabilitySet by default) and use TCP 80
 #Add an ELB in VNET1 via the portal -> same as above
 
