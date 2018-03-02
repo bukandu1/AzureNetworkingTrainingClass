@@ -36,8 +36,8 @@ Write-Host "Creating VNETs..." -ForegroundColor Yellow
 for ($i = 0; $i -lt 2; $i++) {
     $NetworkName = "VNET$($i)"
     $SubnetName = "Subnet1"
-    $SubnetAddressPrefix = "10.0.0.0/24"
-    $VnetAddressPrefix = "10.0.0.0/16"
+    $SubnetAddressPrefix = "10.$($i).0.0/24"
+    $VnetAddressPrefix = "10.$($i).0.0/24"
     $SingleSubnet = New-AzureRmVirtualNetworkSubnetConfig -Name $SubnetName -AddressPrefix $SubnetAddressPrefix
 
     Write-Host "Creating $($NetworkName)..." -ForegroundColor Yellow
@@ -151,6 +151,10 @@ $OUTPUT= [System.Windows.Forms.MessageBox]::Show("Please go create your ILB and 
     "Wait for load balancers" , [System.Windows.Forms.MessageBoxButtons]::OK)
 #Add an ILB in VNET1 via the portal -> Choose your availability set (Lab1AvailabilitySet by default) and use TCP 80
 #Add an ELB in VNET1 via the portal -> same as above
+
+$OUTPUT= [System.Windows.Forms.MessageBox]::Show("While you are in the portal, create your shutdown schedules. Click OK when done." , `
+    "Wait for shutdown schedule" , [System.Windows.Forms.MessageBoxButtons]::OK)
+#Add the shutdown schedule
 
 #Create the Traffic Manager profile
 $TMprofile = New-AzureRmTrafficManagerProfile -Name "Lab1TM" -ResourceGroupName $resourceGroupName `
