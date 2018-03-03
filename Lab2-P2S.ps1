@@ -1,5 +1,11 @@
 $resourceGroupName="rgAzureNetworkingLEAP"
 $location="westus"
+$GWSubName = "GatewaySubnet"
+$GWSubPrefix = "10.1.0.0/27"
+$VNetName = "VNET1"
+$GWIPName = "GW-IP"
+$GWIPconfName = "gwipconf"
+$GWName = "VNet1GW"
 
 #check if we need to log in
 $context =  Get-AzureRmContext
@@ -7,22 +13,20 @@ if ($context.Environment -eq $null) {
     Login-AzureRmAccount
 }
 
-#Grab both VNETs
-Write-Host "Grabbing pointers to both VNETs..." -ForegroundColor Yellow
-$vnet0 = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -Name VNET0
-$vnet1 = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -Name VNET1
+#create the GW subnet
+$gwsub = New-AzureRmVirtualNetworkSubnetConfig -Name $GWSubName -AddressPrefix $GWSubPrefix
+$vnet = Get-AzureRmVirtualNetwork -Name $VNetName -ResourceGroupName $resourceGroupName
+$subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name $gwsub.Name -VirtualNetwork $vnet
 
-# Peer VNet0 to VNet1
-Write-Host "Adding peering to VNET0..." -ForegroundColor Yellow
-Add-AzureRmVirtualNetworkPeering -Name 'Lab2V0toV1Peering' -VirtualNetwork $vnet0 -RemoteVirtualNetworkId $vnet1.Id
-Write-Host "Added peering to VNET0..." -ForegroundColor Green
+#need a PIP for the gateway
+$pip = New-AzureRmPublicIpAddress -Name $GWIPName -ResourceGroupName $resourceGroupName -Location $Location -AllocationMethod Dynamic
+$ipconf = New-AzureRmVirtualNetworkGatewayIpConfig -Name $GWIPconfName -Subnet $subnet -PublicIpAddress $pip
 
-# Peer VNet2 to VNet1
-Write-Host "Adding peering to VNET0..." -ForegroundColor Yellow
-Add-AzureRmVirtualNetworkPeering -Name 'Lab2V1toV0Peering' -VirtualNetwork $vnet1 -RemoteVirtualNetworkId $vnet0.Id
-Write-Host "Added peering to VNET0..." -ForegroundColor Green
+#create the VNET gateway
+New-AzureRmVirtualNetworkGateway -Name $GWName -ResourceGroupName $resourceGroupName `
+	-Location $Location -IpConfigurations $ipconf -GatewayType Vpn `
+	-VpnType RouteBased -EnableBgp $false -GatewaySku VpnGw1 -VpnClientProtocol "IKEv2, SSTP"
 
-for ($i = 0; $i -lt 2; $i++) {
-	Get-AzureRmVirtualNetworkPeering -ResourceGroupName $resourceGroupName -VirtualNetworkName "vnet$($i)" `
-		| Format-Table VirtualNetworkName, PeeringState
-}
+#create the client IP pool
+$Gateway = Get-AzureRmVirtualNetworkGateway -ResourceGroupName $resourceGroupName -Name $GWName
+Set-AzureRmVirtualNetworkGateway -VirtualNetworkGateway $Gateway -VpnClientAddressPool $VPNClientAddressPool

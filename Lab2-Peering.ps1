@@ -18,9 +18,9 @@ Add-AzureRmVirtualNetworkPeering -Name 'Lab2V0toV1Peering' -VirtualNetwork $vnet
 Write-Host "Added peering to VNET0..." -ForegroundColor Green
 
 # Peer VNet2 to VNet1
-Write-Host "Adding peering to VNET0..." -ForegroundColor Yellow
+Write-Host "Adding peering to VNET1..." -ForegroundColor Yellow
 Add-AzureRmVirtualNetworkPeering -Name 'Lab2V1toV0Peering' -VirtualNetwork $vnet1 -RemoteVirtualNetworkId $vnet0.Id
-Write-Host "Added peering to VNET0..." -ForegroundColor Green
+Write-Host "Added peering to VNET1..." -ForegroundColor Green
 
 for ($i = 0; $i -lt 2; $i++) {
 	Get-AzureRmVirtualNetworkPeering -ResourceGroupName $resourceGroupName -VirtualNetworkName "vnet$($i)" `
