@@ -26,7 +26,7 @@ for ($i = 0; $i -lt 100; $i++) {
 
     if ($html -like "*VM2*")
     {
-        write-host $html -ForegroundColor Blue
+        write-host $html -ForegroundColor Magenta
     }
 
     Start-Sleep -Seconds 2
