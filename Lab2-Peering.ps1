@@ -1,5 +1,4 @@
 $resourceGroupName="rgAzureNetworkingLEAP"
-$location="westus"
 
 #check if we need to log in
 $context =  Get-AzureRmContext
