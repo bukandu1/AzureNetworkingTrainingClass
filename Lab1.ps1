@@ -36,8 +36,8 @@ Write-Host "Creating VNETs..." -ForegroundColor Yellow
 for ($i = 0; $i -lt 2; $i++) {
     $NetworkName = "VNET$($i)"
     $SubnetName = "Subnet1"
-    $SubnetAddressPrefix = "10.$($i).0.0/24"
-    $VnetAddressPrefix = "10.$($i).0.0/24"
+    $SubnetAddressPrefix = "10.$($i).0.0/25"
+    $VnetAddressPrefix = "10.$($i).0.0/23"
     $SingleSubnet = New-AzureRmVirtualNetworkSubnetConfig -Name $SubnetName -AddressPrefix $SubnetAddressPrefix
 
     Write-Host "Creating $($NetworkName)..." -ForegroundColor Yellow
