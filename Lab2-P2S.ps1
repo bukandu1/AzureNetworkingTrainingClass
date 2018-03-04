@@ -6,6 +6,7 @@ $VNetName = "VNET1"
 $GWIPName = "GW-IP"
 $GWIPconfName = "gwipconf"
 $GWName = "VNet1GW"
+$VPNClientAddressPool = "172.16.201.0/24"
 $P2SRootCertName = "P2SRootCert.cer"
 
 #check if we need to log in
@@ -16,8 +17,12 @@ if ($context.Environment -eq $null) {
 
 #create the GW subnet
 $vnet = Get-AzureRmVirtualNetwork -Name $VNetName -ResourceGroupName $resourceGroupName
-$subnet = Add-AzureRmVirtualNetworkSubnetConfig -Name $GWSubName -VirtualNetwork $vnet -AddressPrefix $GWSubPrefix
+Add-AzureRmVirtualNetworkSubnetConfig -Name $GWSubName -VirtualNetwork $vnet -AddressPrefix $GWSubPrefix
 Set-AzureRmVirtualNetwork -VirtualNetwork $vnet
+
+#grab a reference to the subnet we just created
+$subnet = (Get-AzureRmVirtualNetwork -Name $vnet.Name -ResourceGroupName $resourceGroupName).Subnets `
+	| Where-Object {$_.Name -eq $GWSubName}
 
 #need a PIP for the gateway
 $pip = New-AzureRmPublicIpAddress -Name $GWIPName -ResourceGroupName $resourceGroupName -Location $Location -AllocationMethod Dynamic
@@ -26,7 +31,7 @@ $ipconf = New-AzureRmVirtualNetworkGatewayIpConfig -Name $GWIPconfName -Subnet $
 #create the VNET gateway
 New-AzureRmVirtualNetworkGateway -Name $GWName -ResourceGroupName $resourceGroupName `
 	-Location $Location -IpConfigurations $ipconf -GatewayType Vpn `
-	-VpnType RouteBased -EnableBgp $false -GatewaySku VpnGw1 -VpnClientProtocol "IKEv2, SSTP"
+	-VpnType RouteBased -EnableBgp $false -GatewaySku VpnGw1 -VpnClientProtocol "IKEV2"
 
 #create the client IP pool
 $Gateway = Get-AzureRmVirtualNetworkGateway -ResourceGroupName $resourceGroupName -Name $GWName
