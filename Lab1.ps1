@@ -97,7 +97,7 @@ $NICName = "$($ComputerName)-NIC"
 $PublicIPAddressName = "$($ComputerName)-PIP"
 
 $Vnet = Get-AzureRmVirtualNetwork -Name  "VNET1" -ResourceGroupName $resourceGroupName
-$PIP = New-AzureRmPublicIpAddress -Name $PublicIPAddressName -ResourceGroupName $resourceGroupName -Location $location -AllocationMethod Dynamic
+$PIP = New-AzureRmPublicIpAddress -Name $PublicIPAddressName -ResourceGroupName $resourceGroupName -Location $location -DomainNameLabel "$($resourceGroupName)PIP2".ToLower() -AllocationMethod Dynamic
 $NIC = New-AzureRmNetworkInterface -Name $NICName -ResourceGroupName $resourceGroupName -Location $location -SubnetId $Vnet.Subnets[0].Id -PublicIpAddressId $PIP.Id
 
 # Create a virtual machine configuration
@@ -165,5 +165,5 @@ for ($i = 0; $i -lt 3; $i++) {
     $PIPName = "Lab1VM$($i)-PIP"
     $ip = Get-AzureRmPublicIpAddress -Name $PIPName -ResourceGroupName $resourceGroupName
     New-AzureRmTrafficManagerEndpoint -Name "$($PIPName)-TMEndpoint" -ProfileName $TMprofile.Name `
-        -ResourceGroupName $resourceGroupName -Type PublicIpAddress -TargetResourceId $ip.Id -EndpointStatus Enabled 
+        -ResourceGroupName $resourceGroupName -Type AzureEndpoints -TargetResourceId $ip.Id -EndpointStatus Enabled 
 }
