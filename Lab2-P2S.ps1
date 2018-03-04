@@ -77,9 +77,10 @@ Add-AzureRmVpnClientRootCertificate -VpnClientRootCertificateName $P2SRootCertNa
 #download the P2S client files
 Write-Host "Downloading P2S client files..." -ForegroundColor Yellow
 $profile=New-AzureRmVpnClientConfiguration -ResourceGroupName $resourceGroupName -Name $GWName -AuthenticationMethod "EapTls"
-$url = $profile.VPNProfileSASUrl
+Write-Host $profile.VPNProfileSASUrl
+
 $output = "vpnclientconfiguration.zip"
-$wc=New-Object System.Net.WebClient
-$wc.DownloadFile($url, $output)
+$wc = New-Object System.Net.WebClient
+$wc.DownloadFile($profile.VPNProfileSASUrl, $output)
 Write-Host "Downloaded client files to $($output)" -ForegroundColor Green
 

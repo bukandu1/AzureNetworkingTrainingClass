@@ -97,7 +97,7 @@ $NICName = "$($ComputerName)-NIC"
 $PublicIPAddressName = "$($ComputerName)-PIP"
 
 $Vnet = Get-AzureRmVirtualNetwork -Name  "VNET1" -ResourceGroupName $resourceGroupName
-$PIP = New-AzureRmPublicIpAddress -Name $PublicIPAddressName -ResourceGroupName $resourceGroupName -Location $location -DomainNameLabel "$($resourceGroupName)PIP2".ToLower() -AllocationMethod Dynamic
+$PIP = New-AzureRmPublicIpAddress -Name $PublicIPAddressName -ResourceGroupName $resourceGroupName -Location $location -DomainNameLabel "$($resourceGroupName)PIP2".ToLower() -AllocationMethod Static
 $NIC = New-AzureRmNetworkInterface -Name $NICName -ResourceGroupName $resourceGroupName -Location $location -SubnetId $Vnet.Subnets[0].Id -PublicIpAddressId $PIP.Id
 
 # Create a virtual machine configuration
