@@ -51,7 +51,7 @@ New-SelfSignedCertificate -Type Custom -DnsName P2SChildCert -KeySpec Signature 
 	-Signer $cert -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.2")
 
 #Export the certificate without the private key into a base-64 encoded CER
-$OUTPUT= [System.Windows.Forms.MessageBox]::Show("Export the certificate without the private key into a base-64 encoded CER. Click OK when done." , `
+$OUTPUT= [System.Windows.Forms.MessageBox]::Show("Export the Root certificate to C:\cert\ without the private key into a base-64 encoded CER. Click OK when done." , `
     "Wait for certificate export" , [System.Windows.Forms.MessageBoxButtons]::OK)
 
 #upload the certificate to the gateway
@@ -64,7 +64,7 @@ Add-AzureRmVpnClientRootCertificate -VpnClientRootCertificateName $P2SRootCertNa
 #download the P2S client files
 $profile=New-AzureRmVpnClientConfiguration -ResourceGroupName $resourceGroupName -Name $GWName -AuthenticationMethod "EapTls"
 $url = $profile.VPNProfileSASUrl
-$output = "$PSScriptRoot\10meg.test"
-$start_time = Get-Date
-(New-Object System.Net.WebClient).DownloadFile($url, $output)
+$output = "vpnclientconfiguration.zip"
+$wc=New-Object System.Net.WebClient
+$wc.DownloadFile($url, $output)
 
