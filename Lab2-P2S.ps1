@@ -8,6 +8,7 @@ $GWIPconfName = "gwipconf"
 $GWName = "VNet1GW"
 $VPNClientAddressPool = "172.16.201.0/24"
 $P2SRootCertName = "P2SRootCert.cer"
+$filePathForCert = "C:\cert\P2SRootCert.cer"
 
 #check if we need to log in
 $context =  Get-AzureRmContext
@@ -51,11 +52,16 @@ New-SelfSignedCertificate -Type Custom -DnsName P2SChildCert -KeySpec Signature 
 	-Signer $cert -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.2")
 
 #Export the certificate without the private key into a base-64 encoded CER
-$OUTPUT= [System.Windows.Forms.MessageBox]::Show("Export the Root certificate to C:\cert\ without the private key into a base-64 encoded CER. Click OK when done." , `
-    "Wait for certificate export" , [System.Windows.Forms.MessageBoxButtons]::OK)
+$cert = Get-Item -Path Cert:\CurrentUser\My\$($cert.Thumbprint)
+$content = @(
+'-----BEGIN CERTIFICATE-----'
+[System.Convert]::ToBase64String($cert.RawData, 'InsertLineBreaks')
+'-----END CERTIFICATE-----'
+)
+
+$content | Out-File -FilePath $filePathForCert -Encoding ascii
 
 #upload the certificate to the gateway
-$filePathForCert = "C:\cert\P2SRootCert.cer"
 $cert = new-object System.Security.Cryptography.X509Certificates.X509Certificate2($filePathForCert)
 $CertBase64 = [system.convert]::ToBase64String($cert.RawData)
 Add-AzureRmVpnClientRootCertificate -VpnClientRootCertificateName $P2SRootCertName `
